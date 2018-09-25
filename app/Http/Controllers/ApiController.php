@@ -3,21 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\RegisterAuthRequest;
-use App\User;
+use App\AppUser as User;
 use Illuminate\Http\Request;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use App\Product;
 
 class ApiController extends Controller
 {
     public $loginAfterSignUp = true;
 
-    public function register(RegisterAuthRequest $request)
+    public function register(Request $request)
     {
+        $inputs = $request->all();
         $user = new User();
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = bcrypt($request->password);
+        $user->name = $inputs['name'];
+        $user->email = $inputs['email'];
+        $user->password = bcrypt($inputs['password']);
         $user->save();
 
         if ($this->loginAfterSignUp) {
@@ -34,7 +36,6 @@ class ApiController extends Controller
     {
         $input = $request->only('email', 'password');
         $jwt_token = null;
-
         if (!$jwt_token = JWTAuth::attempt($input)) {
             return response()->json([
                 'success' => false,
@@ -71,12 +72,11 @@ class ApiController extends Controller
 
     public function getAuthUser(Request $request)
     {
-        $this->validate($request, [
-            'token' => 'required'
-        ]);
-
-        $user = JWTAuth::authenticate($request->token);
-
+        $products = Product::all();
+        return response()->json($products);
+        if (! $user = JWTAuth::parseToken()->authenticate()) {
+            return response()->json(['user_not_found'], 404);
+        }
         return response()->json(['user' => $user]);
     }
 }
